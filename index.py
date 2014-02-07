@@ -25,7 +25,7 @@ mongo_pending_oauth = mongo_db['pending_oauth']
 mongo_pending_oauth.ensure_index([("created", pymongo.ASCENDING)], expireAfterSeconds=3600)
 
 mongo_book_details = mongo_db['books']
-mongo_users.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
+mongo_book_details.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
 
 mongo_availability = mongo_db['availability']
 mongo_availability.ensure_index([("created", pymongo.ASCENDING)], expireAfterSeconds=3600)
