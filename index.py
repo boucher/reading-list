@@ -16,7 +16,7 @@ app = Flask(__name__)
 app.secret_key = os.environ['COOKIE_SECRET']
 
 mongo_client = pymongo.MongoClient(os.environ['MONGOHQ_URL'])
-mongo_db = mongo_client['reading-list']
+mongo_db = mongo_client[os.environ['DB_NAME']]
 
 mongo_users = mongo_db['users']
 mongo_users.ensure_index([("user_id", pymongo.ASCENDING)], unique=True)
