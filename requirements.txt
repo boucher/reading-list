@@ -10,7 +10,6 @@ Werkzeug==0.9.4
 altgraph==0.10.1
 bdist-mpkg==0.4.4
 beautifulsoup4==4.3.2
-bonjour-py==0.3
 elementtree==1.2.7-20070827-preview
 httplib2==0.8
 ipython==1.1.0
