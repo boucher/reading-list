@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 app = Flask(__name__)
 app.secret_key = os.environ['COOKIE_SECRET']
 
-mongo_client = pymongo.MongoClient('mongodb://'+os.environ['MONGO_USER']+':'+os.environ['MONGO_PASSWORD']+'@troup.mongohq.com:10020/reading-list')
+mongo_client = pymongo.MongoClient(os.environ['MONGOHQ_URL'])
 mongo_db = mongo_client['reading-list']
 
 mongo_users = mongo_db['users']

@@ -1,7 +1,6 @@
 BeautifulSoup==3.2.1
 Cython==0.19.2
 Flask==0.10.1
-GoodReads-API-Client==0.1
 Jinja2==2.7.2
 MarkupSafe==0.18
 PyBrain==0.3
