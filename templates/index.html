@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Reading List</title>
+    <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/watable.css" rel="stylesheet">
+    <link href="static/style.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <div class="starter-template">
+        <h1>Reading List</h1>
+        <div id="data"></div>
+      </div>
+
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="static/bootstrap/js/bootstrap.min.js"></script>
+    <script src="static/jquery.watable.js"></script>
+
+    <script>
+    $(document).ready( function() {
+
+        //An example with all options.
+         var waTable = $('#data').WATable({
+            debug:true,                 //Prints some debug info to console
+            pageSize: 100,                //Initial pagesize
+            filter: true,               //Show filter fields
+            sorting: true,              //Enable sorting
+            sortEmptyLast:true,         //Empty values will be shown last
+            //columnPicker: true,         //Show the columnPicker button
+            //pageSizes: [1,5,8,12,200],  //Set custom pageSizes. Leave empty array to hide button.
+            hidePagerOnEmpty: true,     //Removes the pager if data is empty.
+            checkboxes: true,           //Make rows checkable. (Note. You need a column with the 'unique' property)
+            checkAllToggle:true,        //Show the check-all toggle
+            preFill: true,              //Initially fills the table with empty rows (as many as the pagesize).
+            //url: '/someWebservice'    //Url to a webservice if not setting data manually as we do in this example
+            //urlData: { report:1 }     //Any data you need to pass to the webservice
+            //urlPost: true             //Use POST httpmethod to webservice. Default is GET.
+            types: {                    //Following are some specific properties related to the data types
+                string: {
+                    //filterTooltip: "Giggedi..."    //What to say in tooltip when hoovering filter fields. Set false to remove.
+                    //placeHolder: "Type here..."    //What to say in placeholder filter fields. Set false for empty.
+                },
+                number: {
+                    decimals: 1   //Sets decimal precision for float types
+                },
+                bool: {
+                    //filterTooltip: false
+                },
+                date: {
+                  utc: true,            //Show time as universal time, ie without timezones.
+                  //format: 'yy/dd/MM',   //The format. See all possible formats here http://arshaw.com/xdate/#Formatting.
+                  datePicker: false      //Requires "Datepicker for Bootstrap" plugin (http://www.eyecon.ro/bootstrap-datepicker).
+                }
+            }
+            //actions: {                //This generates a button where you can add elements.
+            //    filter: true,         //If true, the filter fields can be toggled visible and hidden.
+            //    columnPicker: true,   //if true, the columnPicker can be toggled visible and hidden.
+            //    custom: [             //Add any other elements here. Here is a refresh and export example.
+            //      $('<a href="#" class="refresh"><i class="icon-refresh"></i>&nbsp;Refresh</a>'),
+            //      $('<a href="#" class="export_all"><i class="icon-share"></i>&nbsp;Export all rows</a>'),
+            //      $('<a href="#" class="export_checked"><i class="icon-share"></i>&nbsp;Export checked rows</a>'),
+            //      $('<a href="#" class="export_filtered"><i class="icon-share"></i>&nbsp;Export filtered rows</a>')
+            //    ]
+            //},
+        }).data('WATable');  //This step reaches into the html data property to get the actual WATable object. Important if you want a reference to it as we want here.
+
+        //Generate some data
+        var data = getData();
+        waTable.setData(data);  //Sets the data.
+    });
+
+    //Generates some data. This step is of course normally done by your web server.
+    function getData() {
+
+        /*
+            'created': datetime.datetime.utcnow(),
+            'title': tree.getchildren()[1].findtext("title"),
+            'isbn': tree.getchildren()[1].findtext("isbn"),
+            'isbn13': tree.getchildren()[1].findtext("isbn13"),
+            'goodreads_id': tree.getchildren()[1].findtext("id"),
+            'num_pages': int(tree.getchildren()[1].findtext("num_pages") or '0'),
+            'average_rating': float(tree.getchildren()[1].findtext("average_rating") or '0'),
+            'author': tree.getchildren()[1].find("authors").getchildren()[0].findtext("name")
+        */
+        //First define the columns
+        var cols = {
+            title: {
+                index: 1,
+                type: "string",
+                friendly: "Title"
+            },
+            author: {
+                index: 2,
+                type: "string",
+                friendly: "Author"
+            },
+            num_pages: {
+                index: 3,
+                type: "number",
+                friendly: "Pages"
+            },
+            average_rating: {
+                index: 4,
+                type: "number",
+                decimals: 2, //Force decimal precision
+                friendly: "Avg. Rating"
+            }
+        };
+
+        /*
+          Create the actual data.
+          Whats worth mentioning is that you can use a 'format' property just as in the column definition,
+          but on a row level. See below on how we create a weightFormat property. This will be used when rendering the weight column.
+          Also, you can pre-check rows with the 'checked' property and prevent rows from being checkable with the 'checkable' property.
+        */
+        var rows = [
+            {% for item in book_details -%}
+            {% if loop.index != 1%},{% endif %} {
+                title: "{{ item['title'] }}",
+                author: "{{ item['author'] }}",
+                num_pages: parseInt({{ item['num_pages'] }}, 10) || undefined,
+                average_rating: parseFloat({{ item['average_rating'] }}, 10) || undefined
+            }
+            {%- endfor %}
+        ];
+
+        //Create the returning object. Besides cols and rows, you can also pass any other object you would need later on.
+        var data = {
+            cols: cols,
+            rows: rows
+        };
+
+        return data;
+    }
+    </script>
+
+  </body>
+</html>
