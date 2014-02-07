@@ -4,7 +4,7 @@ MarkupSafe==0.18
 Werkzeug==0.9.4
 beautifulsoup4==4.3.2
 ## FIXME: could not find svn URL in dependency_links for this package:
-elementtree==1.2.6-20050316 http://effbot.org/media/downloads/elementtree-1.2.6-20050316.zip
+http://effbot.org/media/downloads/elementtree-1.2.6-20050316.zip
 gunicorn==18.0
 itsdangerous==0.23
 mercurial==2.8.1
