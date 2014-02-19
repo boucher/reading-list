@@ -208,5 +208,5 @@ def process_availability_queue():
 
         time.sleep(5)
 
-if __name__ == '__main__':
-    process_availability_queue()
+
+process_availability_queue()
