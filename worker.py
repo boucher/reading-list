@@ -43,6 +43,28 @@ def goodreads_api():
 
     return goodreads
 
+def goodreads_reading_list(goodreads, user_id):
+    isbns = []
+    page = 1
+    full_page = 40
+    return_count = full_page
+
+    while return_count == full_page:
+        response = goodreads.get('https://www.goodreads.com/review/list', params={
+            'format': 'json',
+            'v': '2',
+            'user': user_id,
+            'shelf': 'to-read',
+            'page': page
+        })
+
+        response_isbns = [book['isbn13'] for book in response.json()]
+        isbns = isbns + response_isbns
+        return_count = len(response_isbns)
+        page += 1
+
+    return isbns
+
 def book_list_details(isbns, goodreads):
     found_books = {}
     for book in mongo_book_details.find({"isbn13":{"$in":isbns}}):
@@ -207,7 +229,7 @@ def process_availability_queue():
                 'per_page': 200
             })
 
-            isbns = [book['isbn13'] for book in response.json()]
+            isbns = goodreads_reading_list(goodreads, q['user_id'])
             book_list_details(isbns, goodreads)
             mongo_queue.remove({"user_id":q['user_id']})
 

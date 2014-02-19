@@ -44,15 +44,7 @@ mongo_queue.ensure_index([("user_id", pymongo.ASCENDING)], unique=True)
 def index():
     if session.get('user_id', None):
         goodreads = goodreads_session(session['user_id'])
-        response = goodreads.get('https://www.goodreads.com/review/list', params={
-            'format': 'json',
-            'v': '2',
-            'user': session['user_id'],
-            'shelf': 'to-read',
-            'per_page': 200
-        })
-
-        isbns = [book['isbn13'] for book in response.json()]
+        isbns = goodreads_reading_list(goodreads, session['user_id'])
         count = mongo_availability.find({"isbn13":{"$in":isbns}})
 
         if count.count() == len(isbns):
@@ -131,6 +123,28 @@ def goodreads_api():
     )
 
     return goodreads
+
+def goodreads_reading_list(goodreads, user_id):
+    isbns = []
+    page = 1
+    full_page = 40
+    return_count = full_page
+
+    while return_count == full_page:
+        response = goodreads.get('https://www.goodreads.com/review/list', params={
+            'format': 'json',
+            'v': '2',
+            'user': user_id,
+            'shelf': 'to-read',
+            'page': page
+        })
+
+        response_isbns = [book['isbn13'] for book in response.json()]
+        isbns = isbns + response_isbns
+        return_count = len(response_isbns)
+        page += 1
+
+    return isbns
 
 def book_list_details(isbns, goodreads):
     found_books = {}
