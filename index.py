@@ -279,7 +279,7 @@ def check_overdrive_availability(link):
     }
     return result
 
-
+print("SERVER STARTED")
 if __name__ == '__main__':
     app.debug = os.environ['HOST'] == "127.0.0.1:5000"
     app.run()

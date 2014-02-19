@@ -209,4 +209,5 @@ def process_availability_queue():
         time.sleep(5)
 
 
+print("PROCESS STARTED")
 process_availability_queue()
