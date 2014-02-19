@@ -282,7 +282,9 @@ def check_overdrive_availability(link):
 
 def process_availability_queue():
     while True:
+        print("Processing from the queue.")
         for q in mongo_queue.find():
+            print(q)
             goodreads = goodreads_session(q['user_id'])
             response = goodreads.get('https://www.goodreads.com/review/list', params={
                 'format': 'json',
