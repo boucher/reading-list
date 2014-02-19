@@ -4,6 +4,7 @@ import datetime
 import pymongo
 import requests
 import json
+import thread
 
 from flask import Flask
 from flask import abort, redirect, url_for, session, request, render_template
@@ -27,8 +28,14 @@ mongo_pending_oauth.ensure_index([("created", pymongo.ASCENDING)], expireAfterSe
 mongo_book_details = mongo_db['books']
 mongo_book_details.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
 
+mongo_sfpl_books = mongo_db['sfpl_books']
+mongo_sfpl_books.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
+mongo_sfpl_books.ensure_index([("created", pymongo.ASCENDING)], expireAfterSeconds=30*24*60*60)
+
 mongo_availability = mongo_db['availability']
+mongo_availability.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
 mongo_availability.ensure_index([("created", pymongo.ASCENDING)], expireAfterSeconds=3600)
+
 
 
 @app.route('/')
@@ -42,8 +49,14 @@ def index():
             'shelf': 'to-read'
         })
 
-        details = book_list_details([book['isbn13'] for book in response.json()], goodreads)
-        return render_template('index.html', user_id=session['user_id'], book_details=details)
+        isbns = [book['isbn13'] for book in response.json()]
+        count = mongo_availability.find({"isbn13":{"$in":isbns}})
+
+        if count.count() == len(isbns):
+            details = book_list_details(isbns, goodreads)
+            return render_template('index.html', user_id=session['user_id'], book_details=details)
+        else:
+            return render_template('loading.html', count=count.count(), isbns=isbns)
     else:
         return redirect(url_for('login'))
 
@@ -119,8 +132,11 @@ def book_list_details(isbns, goodreads):
     for book in mongo_book_details.find({"isbn13":{"$in":isbns}}):
         found_books[book['isbn13']] = book
 
-    for availability in mongo_availability.find({"isbn13":{"$in":found_books.keys()}}):
-        found_books[availability['isbn13']]['availability'] = availability['availability']
+    for book in mongo_sfpl_books.find({"isbn13":{"$in":found_books.keys()}}):
+        found_books[book['isbn13']]['sfpl_books'] = book['entries']
+
+    for book in mongo_availability.find({"isbn13":{"$in":found_books.keys()}}):
+        found_books[book['isbn13']]['availability'] = book['availability']
 
     return [book_details(book, goodreads, found_books) for book in isbns]
 
@@ -143,12 +159,14 @@ def book_details(isbn13, goodreads, cache={}):
 
         mongo_book_details.insert(book)
 
+    add_sfpl_entries(book)
     add_availability(book)
 
     return book
 
-def add_availability(book):
-    if book.get('availability', None) != None:
+
+def add_sfpl_entries(book):
+    if book.get('sfpl_books', None) != None:
         return
 
     title_string = '+'.join(book['title'].lower().strip().split(' '))
@@ -176,30 +194,55 @@ def add_availability(book):
                 }
 
                 if data['ebook']: #or data['book']:
-                    parsed_entries.append(check_availability(data))
+                    response = requests.get(data['sfpl_href'])
+                    page = BeautifulSoup(response.text)
 
-    mongo_availability.insert({
+                    # overdrive
+                    links = page.find_all(href=re.compile("^http://sfpl.lib.overdrive.com"))
+                    if len(links) > 0:
+                        data['overdrive_href'] = links[0].attrs['href']
+
+                    # axis 360
+                    links = page.find_all(href=re.compile("^http://sfpl.axis360.baker-taylor.com"))
+                    if len(links) > 0:
+                        data['axis_href'] = links[0].attrs['href']
+
+                    parsed_entries.append(data)
+
+
+    mongo_sfpl_books.insert({
         'isbn13': book['isbn13'],
-        'availability': parsed_entries,
+        'entries': parsed_entries,
         'created':datetime.datetime.utcnow()
     })
 
-    book['availability'] = parsed_entries
+    book['sfpl_books'] = parsed_entries
+
+
+def add_availability(book):
+    if book.get('availability', None) != None:
+        return
+
+    availability = []
+    for entry in book['sfpl_books']:
+        if entry['ebook']:
+            availability.append(check_availability(entry))
+
+    mongo_availability.insert({
+        'isbn13': book['isbn13'],
+        'availability': availability,
+        'created':datetime.datetime.utcnow()
+    })
+
+    book['availability'] = availability
 
 def check_availability(details):
-    response = requests.get(details['sfpl_href'])
-    page = BeautifulSoup(response.text)
-
-    # overdrive
-    links = page.find_all(href=re.compile("^http://sfpl.lib.overdrive.com"))
-    if len(links) > 0:
-        details.update(check_overdrive_availability(links[0].attrs['href']))
+    if details.get('overdrive_href'):
+        details.update(check_overdrive_availability(details['overdrive_href']))
         return details
 
-    # axis 360
-    links = page.find_all(href=re.compile("^http://sfpl.axis360.baker-taylor.com"))
-    if len(links) > 0:
-        details.update(check_axis_availability(links[0].attrs['href']))
+    if details.get('axis_href'):
+        details.update(check_axis_availability(details['axis_href']))
         return details
 
     return False
@@ -222,13 +265,13 @@ def check_overdrive_availability(link):
     response = requests.get(link)
     page = BeautifulSoup(response.text)
     available = int(page.select(".details-avail-copies span")[0].text)
-    formats = [f.text for f in page.select("ul.formats-at-download li")]
+    formats = '; '.join([f.text for f in page.select("ul.formats-at-download li")])
     result = {
         'type': 'overdrive',
         'service_href': link,
         'available': available > 0,
-        'kindle': 'Kindle Book' in formats,
-        'epub': 'Adobe EPUB eBook' in formats
+        'kindle': re.compile("Kindle Book").match(formats) != None,
+        'epub': re.compile('Adobe EPUB eBook').match(formats) != None
     }
     return result
 

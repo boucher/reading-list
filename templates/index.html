@@ -166,8 +166,8 @@
                 average_rating: parseFloat({{ item['average_rating'] }}, 10) || undefined,
                 kindle: {% if item['availability']|selectattr("kindle")|selectattr("available")|map(attribute='available')|first %} true {% else %} false {% endif %},
                 epub: {% if item['availability']|selectattr("epub")|selectattr("available")|map(attribute='available')|first %} true {% else %} false {% endif %},
-                kindle_href: "{{ item['availability']|selectattr('kindle')|selectattr('available')|map(attribute='sfpl_href')|first }}",
-                epub_href: "{{ item['availability']|selectattr('epub')|selectattr('available')|map(attribute='sfpl_href')|first }}"
+                kindle_href: "{{ item['availability']|selectattr('kindle')|selectattr('available')|map(attribute='sfpl_href')|first }}" || "{{ item['availability']|selectattr('kindle')|map(attribute='sfpl_href')|first }}",
+                epub_href: "{{ item['availability']|selectattr('epub')|selectattr('available')|map(attribute='sfpl_href')|first }}" || "{{ item['availability']|selectattr('epub')|map(attribute='sfpl_href')|first }}"
             }
             {%- endfor %}
         ];

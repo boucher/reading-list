@@ -13,3 +13,7 @@ body {
     text-align: center;
     margin-top: 200px;
 }
+
+.kindle_link[href=''], .epub_link[href=''] {
+    visibility:hidden;
+}
