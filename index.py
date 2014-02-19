@@ -48,7 +48,8 @@ def index():
             'format': 'json',
             'v': '2',
             'user': session['user_id'],
-            'shelf': 'to-read'
+            'shelf': 'to-read',
+            'per_page': 200
         })
 
         isbns = [book['isbn13'] for book in response.json()]
