@@ -15,6 +15,9 @@ mongo_db = mongo_client[os.environ['DB_NAME']]
 
 mongo_queue = mongo_db['availability_queue']
 mongo_users = mongo_db['users']
+mongo_book_details = mongo_db['books']
+mongo_sfpl_books = mongo_db['sfpl_books']
+mongo_availability = mongo_db['availability']
 
 def goodreads_session(user_id):
     user = mongo_users.find_one({"user_id":user_id})
