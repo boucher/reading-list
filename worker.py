@@ -14,7 +14,7 @@ mongo_client = pymongo.MongoClient(os.environ['MONGOHQ_URL'])
 mongo_db = mongo_client[os.environ['DB_NAME']]
 
 mongo_queue = mongo_db['availability_queue']
-mongo_queue.ensure_index([("user_id", pymongo.ASCENDING)], unique=True)
+mongo_users = mongo_db['users']
 
 def goodreads_session(user_id):
     user = mongo_users.find_one({"user_id":user_id})
