@@ -5,6 +5,7 @@ import pymongo
 import requests
 import json
 import thread
+import time
 
 from flask import Flask
 from flask import abort, redirect, url_for, session, request, render_template
@@ -36,7 +37,8 @@ mongo_availability = mongo_db['availability']
 mongo_availability.ensure_index([("isbn13", pymongo.ASCENDING)], unique=True)
 mongo_availability.ensure_index([("created", pymongo.ASCENDING)], expireAfterSeconds=3600)
 
-
+mongo_queue = mongo_db['availability_queue']
+mongo_queue.ensure_index([("user_id", pymongo.ASCENDING)], unique=True)
 
 @app.route('/')
 def index():
@@ -56,7 +58,9 @@ def index():
             details = book_list_details(isbns, goodreads)
             return render_template('index.html', user_id=session['user_id'], book_details=details)
         else:
-            return render_template('loading.html', count=count.count(), isbns=isbns)
+            if not mongo_queue.find_one({"user_id":session['user_id']}):
+                mongo_queue.insert({"user_id":session['user_id']})
+            return render_template('loading.html')
     else:
         return redirect(url_for('login'))
 
@@ -276,8 +280,25 @@ def check_overdrive_availability(link):
     return result
 
 
+def process_availability_queue():
+    while True:
+        for q in mongo_queue.find():
+            goodreads = goodreads_session(q['user_id'])
+            response = goodreads.get('https://www.goodreads.com/review/list', params={
+                'format': 'json',
+                'v': '2',
+                'user': q['user_id'],
+                'shelf': 'to-read'
+            })
+
+            isbns = [book['isbn13'] for book in response.json()]
+            book_list_details(isbns, goodreads)
+            mongo_queue.remove({"user_id":q['user_id']})
+
+        time.sleep(5)
 
 if __name__ == '__main__':
+    thread.start_new_thread(process_availability_queue, ())
     app.debug = os.environ['HOST'] == "127.0.0.1:5000"
     app.run()
 
