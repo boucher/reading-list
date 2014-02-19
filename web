@@ -1,2 +1,2 @@
-python worker.py
+python worker.py &
 gunicorn index:app
