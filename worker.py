@@ -60,6 +60,7 @@ def book_details(isbn13, goodreads, cache={}):
     book = cache.get(isbn13, None)
 
     if not book:
+        time.sleep(0.5)
         response = goodreads.get("https://www.goodreads.com/book/isbn", params={'format': 'xml', 'isbn': isbn13})
         tree = ElementTree.fromstring(response.text.encode("utf-8"))
         book = {
@@ -213,4 +214,5 @@ def process_availability_queue():
 
 
 print("PROCESS STARTED")
+time.sleep(5)
 process_availability_queue()
