@@ -79,7 +79,6 @@ def goodreads_reading_list(goodreads, user_id):
         return_count = len(response_isbns)
         page += 1
 
-    print isbns
     return isbns
 
 def book_list_details(isbns, goodreads):

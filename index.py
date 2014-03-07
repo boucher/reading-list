@@ -73,17 +73,6 @@ def oauth_callback():
     else:
         return redirect(url_for('login'))
 
-@app.route("/sheena")
-def sheena():
-    session['user_id'] = "27557103"
-    return redirect(url_for("index"))
-
-
-@app.route("/ross")
-def ross():
-    session['user_id'] = "21000568"
-    return redirect(url_for("index"))
-
 
 @app.route('/logout')
 def logout():
