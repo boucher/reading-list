@@ -73,7 +73,8 @@ def goodreads_reading_list(goodreads, user_id):
             'page': page
         })
 
-        response_isbns = [book['isbn13'] for book in response.json()]
+        response_isbns = [book['isbn13'] for book in response.json() if book['isbn13'] is not None]
+
         isbns = isbns + response_isbns
         return_count = len(response_isbns)
         page += 1
