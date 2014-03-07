@@ -6,6 +6,7 @@ import requests
 import json
 import thread
 import time
+import urllib
 
 from rauth.service import OAuth1Service, OAuth1Session
 from elementtree import ElementTree
@@ -96,19 +97,25 @@ def book_list_details(isbns, goodreads):
 
 def book_details(isbn13, goodreads, cache={}):
     book = cache.get(isbn13, None)
+    print("Fetching details for: "+isbn13)
 
     if not book:
         response = goodreads.get("https://www.goodreads.com/book/isbn", params={'format': 'xml', 'isbn': isbn13})
-        tree = ElementTree.fromstring(response.text.encode("utf-8"))
+        tree = ElementTree.fromstring(response.text.encode("utf-8")).getchildren()[1]
+        work = tree.find("work")
+        title = None
+        if work is not None:
+            title = work.findtext("original_title")
+
         book = {
             'created': datetime.datetime.utcnow(),
-            'title': tree.getchildren()[1].findtext("title"),
-            'isbn': tree.getchildren()[1].findtext("isbn"),
-            'isbn13': tree.getchildren()[1].findtext("isbn13"),
-            'goodreads_id': tree.getchildren()[1].findtext("id"),
-            'num_pages': int(tree.getchildren()[1].findtext("num_pages") or '0'),
-            'average_rating': float(tree.getchildren()[1].findtext("average_rating") or '0'),
-            'author': tree.getchildren()[1].find("authors").getchildren()[0].findtext("name")
+            'title': title or tree.findtext("title"),
+            'isbn': tree.findtext("isbn"),
+            'isbn13': tree.findtext("isbn13"),
+            'goodreads_id': tree.findtext("id"),
+            'num_pages': int(tree.findtext("num_pages") or '0'),
+            'average_rating': float(tree.findtext("average_rating") or '0'),
+            'author': tree.find("authors").getchildren()[0].findtext("name")
         }
 
         mongo_book_details.insert(book)
@@ -123,11 +130,17 @@ def add_sfpl_entries(book):
     if book.get('sfpl_books', None) != None:
         return
 
-    title_string = '+'.join(book['title'].lower().strip().split(' '))
-    author_string = '+'.join(book['author'].lower().strip().split(' '))
+    title = re.sub('\([^)]*\)', '', book['title'].lower().strip())
+    title = re.sub(':', '', title)
+    title = re.sub('vol.', 'volume', title)
 
-    r = requests.get("http://sflib1.sfpl.org/search/q?author="+author_string+"&title=" + title_string)
+    title_string = urllib.urlencode({"title":title.encode("ascii", errors="replace")})
+    author_string = urllib.urlencode({"author":book['author'].lower().strip().split(" ")[-1].encode("ascii", errors="replace")})
+    print("Adding sfpl entries for: ", title_string, author_string)
+
+    r = requests.get("http://sflib1.sfpl.org/search/q?"+author_string+"&"+title_string)
     b = BeautifulSoup(r.text)
+    print(r.url)
 
     # http://sflib1.sfpl.org/search/q?author=&title=a+man+on+the+moon
 
