@@ -124,8 +124,12 @@ def add_sfpl_entries(book):
         return
 
     title_string = '+'.join(book['title'].lower().strip().split(' '))
-    r = requests.get("http://sflib1.sfpl.org/search~S1/?searchtype=t&searcharg=" + title_string)
+    author_string = '+'.join(book['author'].lower().strip().split(' '))
+
+    r = requests.get("http://sflib1.sfpl.org/search/q?author="+author_string+"&title=" + title_string)
     b = BeautifulSoup(r.text)
+
+    # http://sflib1.sfpl.org/search/q?author=&title=a+man+on+the+moon
 
     entries = b.select(".briefCitRow")
     if len(entries) == 0:
