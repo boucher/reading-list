@@ -62,10 +62,9 @@ def goodreads_api():
 def goodreads_reading_list(goodreads, user_id):
     isbns = []
     page = 1
-    full_page = 40
-    return_count = full_page
+    return_count = 1
 
-    while return_count == full_page:
+    while return_count > 0:
         response = goodreads.get('https://www.goodreads.com/review/list', params={
             'format': 'json',
             'v': '2',
@@ -205,7 +204,7 @@ def check_availability(details):
 def check_axis_availability(link):
     response = requests.get(link)
     page = BeautifulSoup(response.text)
-    available = int(page.select("#AvailableQuantity")[0].text.split()[1]) 
+    available = int(page.select("#AvailableQuantity")[0].text.split()[1])
     result = {
         'type': 'axis',
         'service_href': link,
