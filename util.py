@@ -222,15 +222,25 @@ def check_availability(details):
 def check_axis_availability(link):
     response = requests.get(link)
     page = BeautifulSoup(response.text)
-    available = int(page.select("#AvailableQuantity")[0].text.split()[1])
-    result = {
+    for info in page.find_all(class_="CopiesInfo"):
+        if re.compile("available").match(info.text.lower().strip()):
+            available = int(info.find_all("span")[0].find_all("span")[0].text)
+            result = {
+                'type': 'axis',
+                'service_href': link,
+                'available': available > 0,
+                'kindle': False,
+                'epub': True
+            }
+            return result
+
+    return {
         'type': 'axis',
         'service_href': link,
-        'available': available > 0,
-        'kindle': False,
-        'epub': True
+        'available': False,
+        'epub': True,
+        'kindle': False
     }
-    return result
 
 def check_overdrive_availability(link):
     response = requests.get(link)
